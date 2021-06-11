@@ -13,7 +13,6 @@
                 "name": "customer",
                 "rule": []
             },
-
             {
                 "id": "2",
                 "name": "restaurant",
@@ -49,7 +48,8 @@
                 "lane_id": "1",
                 "next": "4",
                 "parameters": {
-                    "action": "CHOOSE_RESTAURANT"
+                    "action": "CHOOSE_RESTAURANT",
+                    "input": {}
                 }
             },
             {
@@ -59,7 +59,8 @@
                 "lane_id": "1",
                 "next": "5",
                 "parameters": {
-                    "action": "CHOOSE_PIZZA"
+                    "action": "CHOOSE_PIZZA",
+                    "input": {}
                 }
             },
             {
@@ -69,7 +70,8 @@
                 "lane_id": "1",
                 "next": "6",
                 "parameters": {
-                    "action": "CHOOSE_PAYMENT_METHOD"
+                    "action": "CHOOSE_PAYMENT_METHOD",
+                    "input": {}
                 }
             },
             {
@@ -100,7 +102,7 @@
                 "id": "7",
                 "name": "Place the order",
                 "type": "systemTask",
-                "category": "HTTP",
+                "category": "http",
                 "lane_id": "1",
                 "next": "8",
                 "parameters": {
@@ -131,6 +133,7 @@
                 "id": "8",
                 "name": "Receive Order",
                 "type": "systemTask",
+                "category": "setToBag",
                 "lane_id": "2",
                 "next": "9",
                 "parameters": {
@@ -148,22 +151,25 @@
                 "lane_id": "2",
                 "next": "10",
                 "parameters": {
-                    "action": "REVIEW_ORDER"
+                    "action": "REVIEW_ORDER",
+                    "input": {
+                        "key": {
+                            "$js": "({bag}) => (!bag.pizza_flavor || !bag.pizza_qty|| bag.pizza_comments == 0) ? false : true"
+                        }
+                    }
                 }
             },
             {
                 "id": "10",
                 "name": "Is Order Ok",
                 "type": "systemTask",
+                "category": "setToBag",
                 "lane_id": "2",
-                "next": {
-                    "true": "11",
-                    "false": "10-1"
-                },
+                "next": "11",
                 "parameters": {
                     "input": {
-                        "order": {
-                            "$ref": "bag.order.id.acceptance"
+                        "key": {
+                            "$ref": "bag.key"
                         }
                     }
                 }
@@ -198,7 +204,8 @@
                 "lane_id": "2",
                 "next": "13",
                 "parameters": {
-                    "action": "PREPARE_PIZZA"
+                    "action": "PREPARE_PIZZA",
+                    "input": {}
                 }
             },
             {
@@ -208,7 +215,8 @@
                 "next": "14",
                 "lane_id": "2",
                 "parameters": {
-                    "action": "SEPARATE_PIZZA"
+                    "action": "SEPARATE_PIZZA",
+                    "input": {}
                 }
             },
             {
@@ -218,14 +226,14 @@
                 "lane_id": "2",
                 "next": "15",
                 "parameters": {
-                    "action": "SEND_ORDER_TO_CLIENT"
+                    "action": "SEND_ORDER_TO_CLIENT",
+                    "input": {}
                 }
             },
             {
                 "id": "15",
                 "name": "Update the order",
-                "category": "systemTask",
-                "type": "HTTP",
+                "type": "userTask",
                 "lane_id": "2",
                 "next": "16",
                 "parameters": {
@@ -245,7 +253,8 @@
                 "next": "17",
                 "lane_id": "1",
                 "parameters": {
-                    "input": "TAKE_THE_ORDER"
+                    "action": "TAKE_THE_ORDER",
+                    "input": {}
                 }
             },
             {
@@ -254,7 +263,8 @@
                 "name": "Is it paid?",
                 "next": {
                     "true": "99",
-                    "false": "18"
+                    "false": "18",
+                    "default": "18"
                 },
                 "lane_id": "1",
                 "parameters": {
@@ -270,89 +280,81 @@
                 "name": "Pay the order",
                 "type": "userTask",
                 "lane_id": "1",
-                "next": 99,
+                "next": "99",
                 "parameters": {
-                    "action": "PAY_THE_ORDER"
+                    "action": "PAY_THE_ORDER",
+                    "input": {}
                 }
-            
-    },
-
-    {
-        "id": "99",
-        "name": "Finish - Order delivered",
-        "type": "Finish",
-        "lane_id": "1",
-        "next": null
-    },
-
-
-    {
-        "id": "10-1",
-        "category": "systemTask",
-        "type": "HTTP",
-        "name": "Pizza not Accepted",
-        "next": "10-2",
-        "lane_id": "1",
-        "parameters": {
-            "action": "NOTIFY_USER",
-            "input": {
-                "orderNo": {
-                    "$ref": "bag.order.id"
-                },
-                "message": "Order not accepted"
-            }
-        }
-    },
-
-    {
-        "id": "10-2",
-        "type": "systemTask",
-        "name": "Pizza not Accepted",
-        "next": "10-3",
-        "lane_id": "1",
-        "parameters": {
-            "action": "NOTIFY_USER",
-            "input": {
-                "orderNo": {
-                    "$ref": "bag.order.id"
-                },
-                "message": "Order not accepted"
-            }
-        } 
-    },
-
-    {
-        "id": "10-3",
-        "type": "systemTask",
-        "category": "HTTP",
-        "name": "Update Order",
-        "next": "100",
-        "lane_id": "1",
-        "parameters": {
-            "action": "NOTIFY_USER",
-            "input": {
-                "status": "cancelled"
             },
-            "request": {
-                "url": {
-                    "$mustache": "LinkToUpdateOrder"
-                },
-                "verb": "PUT",
-                "headers": {
-                    "ContentType": "application/json"
+            {
+                "id": "99",
+                "name": "Finish - Order delivered",
+                "type": "Finish",
+                "lane_id": "1",
+                "next": null
+            },
+            {
+                "id": "10-1",
+                "type": "userTask",
+                "name": "Pizza not Accepted",
+                "next": "10-2",
+                "lane_id": "1",
+                "parameters": {
+                    "action": "NOTIFY_USER",
+                    "input": {
+                        "orderNo": {
+                            "$ref": "bag.order.id"
+                        },
+                        "message": "Order not accepted"
+                    }
                 }
+            },
+            {
+                "id": "10-2",
+                "type": "userTask",
+                "name": "Pizza not Accepted",
+                "next": "10-3",
+                "lane_id": "1",
+                "parameters": {
+                    "action": "NOTIFY_USER",
+                    "input": {
+                        "orderNo": {
+                            "$ref": "bag.order.id"
+                        },
+                        "message": "Order not accepted"
+                    }
+                }
+            },
+            {
+                "id": "10-3",
+                "type": "systemTask",
+                "category": "http",
+                "name": "Update Order",
+                "next": "100",
+                "lane_id": "1",
+                "parameters": {
+                    "action": "NOTIFY_USER",
+                    "input": {
+                        "status": "cancelled"
+                    },
+                    "request": {
+                        "url": {
+                            "$mustache": "LinkToUpdateOrder"
+                        },
+                        "verb": "PUT",
+                        "headers": {
+                            "ContentType": "application/json"
+                        }
+                    }
+                }
+            },
+            {
+                "id": "100",
+                "name": "Finish - Order cancelled",
+                "type": "Finish",
+                "lane_id": "1",
+                "next": null
             }
-        }
-    },
-
-    {
-            "id": "100",
-            "name": "Finish - Order cancelled",
-            "type": "Finish",
-            "lane_id": "1",
-            "next": null
+        ]
     }
-   
-]
-}
 }

@@ -16,16 +16,9 @@
 
             {
                 "id": "2",
-                "name": "app",
-                "rule": []
-            },
-
-            {
-                "id": "3",
                 "name": "restaurant",
                 "rule": []
             }
-            
         ],
         "nodes": [
             {
@@ -51,80 +44,80 @@
             },
             {
                 "id": "3",
-                "name": "choose restaurant",
+                "name": "Choose restaurant",
                 "type": "userTask",
-                "category": "setToBag",
                 "lane_id": "1",
                 "next": "4",
                 "parameters": {
+                    "action": "CHOOSE_RESTAURANT"
+                }
+            },
+            {
+                "id": "4",
+                "name": "Choose pizza",
+                "type": "userTask",
+                "lane_id": "1",
+                "next": "5",
+                "parameters": {
+                    "action": "CHOOSE_PIZZA"
+                }
+            },
+            {
+                "id": "5",
+                "name": "Payment method",
+                "type": "userTask",
+                "lane_id": "1",
+                "next": "6",
+                "parameters": {
+                    "action": "CHOOSE_PAYMENT_METHOD"
+                }
+            },
+            {
+                "id": "6",
+                "name": "Order Info",
+                "type": "systemTask",
+                "lane_id": "1",
+                "category": "setToBag",
+                "next": "7",
+                "parameters": {
                     "input": {
-                        "restaurant_name": {
-                            "$ref": "bag.restaurant_name"
+                        "comments": {
+                            "$ref": "bag.pizza_comments"
+                        },
+                        "flavor": {
+                            "$ref": "bag.pizza_flavor"
+                        },
+                        "qty": {
+                            "$ref": "bag.pizza_qty"
+                        },
+                        "payment_method": {
+                            "$ref": "bag.payment_method"
                         }
                     }
                 }
             },
             {
-                "id": "4",
-                "name": "choose pizza",
-                "type": "userTask",
-                "category": "setToBag",
+                "id": "7",
+                "name": "Place the order",
+                "type": "systemTask",
+                "category": "HTTP",
                 "lane_id": "1",
-                "next": "5",
+                "next": "8",
                 "parameters": {
                     "input": {
                         "pizza_flavor": {
                             "$ref": "bag.pizza_flavor"
                         },
                         "pizza_qty": {
-                                "$ref": "bag.pizza_qty"
-                            },
+                            "$ref": "bag.pizza_qty"
+                        },
                         "pizza_comments": {
                             "$ref": "bag.pizza_comments"
-                        }
-                    },
-                    "request": {
-                        "url": "LinkToPlacePizza",
-                        "verb": "POST",
-                        "headers": {
-                            "ContentType": "application/json"
-                        }
-                    }
-                }
-            },
-            {
-                "id": "5",
-                "name": "payment method",
-                "type": "userTask",
-                "lane_id": "1",
-                "next": "6",
-                "parameters": {
-                    "input": {
+                        },
                         "payment_method": {
-                            "$ref": "bag.payment_method"
+                            "$ref": "payment_method"
                         }
                     },
-                    "request": {
-                        "url": "LinkToPlacePayment",
-                        "verb": "POST",
-                        "headers": {
-                            "ContentType": "application/json"
-                        }
-                    }
-                }
-            },
-            {
-                "id": "6",
-                "name": "place the order",
-                "type": "userTask",
-                "category": "http",
-                "lane_id": "1",
-                "next": "7",
-                "parameters": {
-                    "input": {
-                        "order_confirmation": "confirmation"
-                    },
-
                     "request": {
                         "url": "LinkToOrderPizza",
                         "verb": "POST",
@@ -135,65 +128,61 @@
                 }
             },
             {
-                "id": "7",
-                "name": "bag order",
-                "type": "systemTask",
-                "category": "setToBag",
-                "lane_id": "2",
-                "next": "8",
-                "parameters": {
-                    "input": {
-                        "order": {
-                            "$ref": "result.data"
-                        }
-                    }
-                }
-            },
-            {
                 "id": "8",
-                "name": "save the order",
+                "name": "Receive Order",
                 "type": "systemTask",
                 "lane_id": "2",
                 "next": "9",
                 "parameters": {
-                    "action": "SAVE_ORDER",
                     "input": {
-                        "order": {
-                            "$ref": "bag.order"
+                        "order_id": {
+                            "$ref": "bag.order.id"
                         }
                     }
                 }
             },
             {
                 "id": "9",
-                "name": "send order to restaurant",
-                "type": "systemTask",
+                "name": "Review Order",
+                "type": "userTask",
                 "lane_id": "2",
                 "next": "10",
                 "parameters": {
+                    "action": "REVIEW_ORDER"
+                }
+            },
+            {
+                "id": "10",
+                "name": "Is Order Ok",
+                "type": "systemTask",
+                "lane_id": "2",
+                "next": {
+                    "true": "11",
+                    "false": "10-1"
+                },
+                "parameters": {
                     "input": {
                         "order": {
-                            "$ref": "bag.order"
+                            "$ref": "bag.order.id.acceptance"
                         }
                     }
                 }
             },
             {
-                "id": "10",
-                "type": "flow",
-                "name": "accept order",
-                "next": {
-                  "accepted": "13",
-                  "default": "11"   
-                },
-                "lane_id": "restaurant",
+                "id": "11",
+                "type": "systemTask",
+                "category": "HTTP",
+                "name": "Update Order",
+                "next": "12",
+                "lane_id": "2",
                 "parameters": {
+                    "action": "NOTIFY_USER",
                     "input": {
-                        "status": "started"
+                        "status": "accepted"
                     },
                     "request": {
                         "url": {
-                            "$mustache": "https://5faabe16b5c645001602b152.mockapi.io/order/{{bag.order.id}}"
+                            "$mustache": "LinkToUpdateOrder"
                         },
                         "verb": "PUT",
                         "headers": {
@@ -203,217 +192,167 @@
                 }
             },
             {
-                "id": "1-6A",
-                "name": "bag order",
-                "type": "systemTask",
-                "category": "setToBag",
-                "lane_id": "customer",
-                "next": "1-7",
+                "id": "12",
+                "name": "Prepare Pizza",
+                "type": "userTask",
+                "lane_id": "2",
+                "next": "13",
                 "parameters": {
-                    "input": {
-                        "order": {
-                            "$ref": "result.data"
-                        }
-                    }
+                    "action": "PREPARE_PIZZA"
                 }
             },
             {
-                "id": "1-7",
-                "name": "notify user pizza started",
+                "id": "13",
                 "type": "userTask",
-                "lane_id": "customer",
-                "next": "1-8",
+                "name": "Prepare pizza to be delivered",
+                "next": "14",
+                "lane_id": "2",
+                "parameters": {
+                    "action": "SEPARATE_PIZZA"
+                }
+            },
+            {
+                "id": "14",
+                "name": "Send pizza to the client",
+                "type": "userTask",
+                "lane_id": "2",
+                "next": "15",
+                "parameters": {
+                    "action": "SEND_ORDER_TO_CLIENT"
+                }
+            },
+            {
+                "id": "15",
+                "name": "Update the order",
+                "category": "systemTask",
+                "type": "HTTP",
+                "lane_id": "2",
+                "next": "16",
                 "parameters": {
                     "action": "NOTIFY_USER",
                     "input": {
                         "orderNo": {
                             "$ref": "bag.order.id"
                         },
-                        "message": "seu pedido foi iniciado"
-                    },
-                    "activity_manager": "notify"
-                }
-            },
-            {
-                "id": "1-8",
-                "type": "SystemTask",
-                "name": "wait 1 minutes",
-                "category": "Timer",
-                "next": "1-9",
-                "lane_id": "customer",
-                "parameters": {
-                    "input": {},
-                    "timeout": 60
-                }
-            },
-            {
-                "id": "1-9",
-                "type": "SystemTask",
-                "category": "HTTP",
-                "name": "Update Order",
-                "next": "1-10",
-                "lane_id": "restaurant",
-                "parameters": {
-                    "input": {},
-                    "request": {
-                        "url": {
-                            "$mustache": "https://5faabe16b5c645001602b152.mockapi.io/order/{{bag.order.id}}"
-                        },
-                        "verb": "GET",
-                        "headers": {
-                            "ContentType": "application/json"
-                        }
+                        "message": "Your order is on the way!"
                     }
                 }
             },
             {
-                "id": "1-10",
-                "name": "order status",
+                "id": "16",
+                "type": "userTask",
+                "name": "Receive Order",
+                "next": "17",
+                "lane_id": "1",
+                "parameters": {
+                    "input": "TAKE_THE_ORDER"
+                }
+            },
+            {
+                "id": "17",
                 "type": "flow",
-                "lane_id": "restaurant",
+                "name": "Is it paid?",
                 "next": {
-                    "received": "1-99",
-                    "on_route": "4-1",
-                    "default": "5-1"
+                    "true": "99",
+                    "false": "18"
                 },
+                "lane_id": "1",
                 "parameters": {
                     "input": {
                         "key": {
-                            "$ref": "result.data.status"
+                            "$ref": "payment_method.status"
                         }
                     }
                 }
             },
             {
-                "id": "1-99",
-                "name": "Finish - Order delivered",
-                "type": "Finish",
-                "lane_id": "customer",
-                "next": null
-            },
-            {
-                "id": "2-99",
-                "name": "Finish - Order incorrect",
-                "type": "Finish",
-                "lane_id": "customer",
-                "next": null
-            },
-            {
-                "id": "3-99",
-                "name": "Finish - Order cannot be done",
-                "type": "Finish",
-                "lane_id": "customer",
-                "next": null
-            },
-            {
-                "id": "4-1",
-                "type": "SystemTask",
-                "name": "wait 5 minutes",
-                "category": "Timer",
-                "next": "1-9",
-                "lane_id": "customer",
-                "parameters": {
-                    "input": {},
-                    "timeout": 60
-                }
-            },
-            {
-                "id": "5-1",
-                "type": "SystemTask",
-                "category": "HTTP",
-                "name": "Update Order",
-                "next": "5-2",
-                "lane_id": "restaurant",
-                "parameters": {
-                    "input": {
-                        "status": "complaim"
-                    },
-                    "request": {
-                        "url": {
-                            "$mustache": "https://5faabe16b5c645001602b152.mockapi.io/order/{{bag.order.id}}"
-                        },
-                        "verb": "PUT",
-                        "headers": {
-                            "ContentType": "application/json"
-                        }
-                    }
-                }
-            },
-            {
-                "id": "5-2",
+                "id": "18",
+                "name": "Pay the order",
                 "type": "userTask",
-                "name": "Contact Customer",
-                "next": "5-3",
-                "lane_id": "cx",
+                "lane_id": "1",
+                "next": 99,
                 "parameters": {
-                    "action": "CONTACT_CUSTOMER",
-                    "input": {
-                        "order": {
-                            "$ref": "bag.order"
-                        }
-                    },
-                    "activity_manager": "commit"
+                    "action": "PAY_THE_ORDER"
                 }
-            },
-            {
-                "id": "5-3",
-                "type": "Flow",
-                "name": "action",
-                "lane_id": "cx",
-                "next": {
-                    "cancel": "6-1",
-                    "wait": "5-4",
-                    "default": "5-4"
+            
+    },
+
+    {
+        "id": "99",
+        "name": "Finish - Order delivered",
+        "type": "Finish",
+        "lane_id": "1",
+        "next": null
+    },
+
+
+    {
+        "id": "10-1",
+        "category": "systemTask",
+        "type": "HTTP",
+        "name": "Pizza not Accepted",
+        "next": "10-2",
+        "lane_id": "1",
+        "parameters": {
+            "action": "NOTIFY_USER",
+            "input": {
+                "orderNo": {
+                    "$ref": "bag.order.id"
                 },
-                "parameters": {
-                    "input": {
-                        "decision": {
-                            "$ref": "result.activities[0].data.action"
-                        }
-                    }
-                }
-            },
-            {
-                "id": "5-4",
-                "type": "systemTask",
-                "category": "timer",
-                "name": "wait X minutes",
-                "lane_id": "cx",
-                "next": "1-9",
-                "parameters": {
-                    "input": {},
-                    "timeout": 60
-                }
-            },
-            {
-                "id": "6-1",
-                "type": "SystemTask",
-                "category": "HTTP",
-                "name": "Update Order",
-                "next": "6-99",
-                "lane_id": "cx",
-                "parameters": {
-                    "input": {
-                        "status": "cancel"
-                    },
-                    "request": {
-                        "url": {
-                            "$mustache": "https://5faabe16b5c645001602b152.mockapi.io/order/{{bag.order.id}}"
-                        },
-                        "verb": "PUT",
-                        "headers": {
-                            "ContentType": "application/json"
-                        }
-                    }
-                }
-            },
-            {
-                "id": "6-99",
-                "name": "Finish - Order cancelled",
-                "type": "Finish",
-                "lane_id": "customer",
-                "next": null
+                "message": "Order not accepted"
             }
-        ]
+        }
+    },
+
+    {
+        "id": "10-2",
+        "type": "systemTask",
+        "name": "Pizza not Accepted",
+        "next": "10-3",
+        "lane_id": "1",
+        "parameters": {
+            "action": "NOTIFY_USER",
+            "input": {
+                "orderNo": {
+                    "$ref": "bag.order.id"
+                },
+                "message": "Order not accepted"
+            }
+        } 
+    },
+
+    {
+        "id": "10-3",
+        "type": "systemTask",
+        "category": "HTTP",
+        "name": "Update Order",
+        "next": "100",
+        "lane_id": "1",
+        "parameters": {
+            "action": "NOTIFY_USER",
+            "input": {
+                "status": "cancelled"
+            },
+            "request": {
+                "url": {
+                    "$mustache": "LinkToUpdateOrder"
+                },
+                "verb": "PUT",
+                "headers": {
+                    "ContentType": "application/json"
+                }
+            }
+        }
+    },
+
+    {
+            "id": "100",
+            "name": "Finish - Order cancelled",
+            "type": "Finish",
+            "lane_id": "1",
+            "next": null
     }
+   
+]
+}
 }
